@@ -57,4 +57,12 @@ def server_info():
         ip = "127.0.0.1"
     finally:
         s.close()
-    return {"lan_ip": ip, "https_port": 8443}
+    # Internet-demo tunnel (started by internet_demo.py) writes its public
+    # URL here; when present the phone should use it — works from any network.
+    public_url = None
+    try:
+        with open("E:/campus-gate/frontend/tunnel.txt") as f:
+            public_url = f.read().strip() or None
+    except OSError:
+        pass
+    return {"lan_ip": ip, "https_port": 8443, "public_url": public_url}

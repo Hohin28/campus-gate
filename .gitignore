@@ -8,6 +8,10 @@ env/
 # ---------- Generated at runtime (rebuild: python backend/seed_data.py) ----------
 backend/campus_gate.db
 frontend/dataset.js
+frontend/tunnel.txt
+
+# ---------- Downloaded tools (internet_demo.py fetches cloudflared) ----------
+tools/
 
 # ---------- TLS certificate + PRIVATE KEY (regenerate: python backend/gen_cert.py) ----------
 backend/certs/

@@ -49,10 +49,17 @@
   let url;
   try {
     const info = await (await fetch('/api/server-info')).json();
-    url = 'https://' + info.lan_ip + ':' + info.https_port;
-    if (info.lan_ip === '127.0.0.1') {
+    if (info.public_url) {
+      // Internet demo: public tunnel — phone can be on its own mobile data.
+      url = info.public_url;
       document.getElementById('netcheck').innerHTML =
-        '⚠️ No Wi-Fi/LAN detected on the laptop — connect it to Wi-Fi and reload this page.';
+        '🌐 Internet mode: works from ANY network (phone can use mobile data). Real HTTPS — no security warning.';
+    } else {
+      url = 'https://' + info.lan_ip + ':' + info.https_port;
+      if (info.lan_ip === '127.0.0.1') {
+        document.getElementById('netcheck').innerHTML =
+          '⚠️ No Wi-Fi/LAN detected on the laptop — connect it to Wi-Fi (or the phone\'s hotspot) and reload this page.';
+      }
     }
   } catch (e) {
     url = location.origin;
