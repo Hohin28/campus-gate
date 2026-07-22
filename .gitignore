@@ -1,0 +1,33 @@
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+env/
+
+# ---------- Generated at runtime (rebuild: python backend/seed_data.py) ----------
+backend/campus_gate.db
+frontend/dataset.js
+
+# ---------- TLS certificate + PRIVATE KEY (regenerate: python backend/gen_cert.py) ----------
+backend/certs/
+*.key
+*.pem
+
+# ---------- Secrets / environment ----------
+.env
+.env.*
+
+# ---------- Node / build artifacts ----------
+node_modules/
+dist/
+build/
+
+# ---------- Logs / temp / OS ----------
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+# ---------- Local tool config (machine-specific) ----------
+.claude/settings.local.json

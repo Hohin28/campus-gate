@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Connect your phone — Campus Gate</title>
+<link rel="stylesheet" href="/static/style.css?v=8">
+</head>
+<body>
+<div class="screen active" style="max-width:520px">
+  <div class="card" style="text-align:center;padding:28px 20px">
+    <div style="font-size:42px">📱</div>
+    <h1>Connect your phone</h1>
+    <p class="subtitle">Scan the QR (or type the address) on the phone.<br>
+    Phone = gate scanner &nbsp;·&nbsp; Laptop = warden approvals.</p>
+  </div>
+
+  <div class="card" style="text-align:center">
+    <h2>1 &nbsp;Scan this QR on the phone</h2>
+    <div id="qr" style="display:inline-block;background:#fff;padding:14px;border-radius:12px"></div>
+    <div id="url" style="margin-top:14px;font-family:Consolas,monospace;font-size:18px;color:#7dd3fc;font-weight:700">…</div>
+    <div class="hint" id="netcheck" style="margin-top:8px">Phone and laptop must be on the same Wi-Fi.</div>
+  </div>
+
+  <div class="card">
+    <h2>2 &nbsp;Accept the security notice (one time)</h2>
+    <div class="hint" style="margin:0 0 6px">The demo uses a self-made certificate, so the phone shows
+    "connection not private". Tap <b>Advanced → Proceed / Visit site</b>. This is what makes the
+    camera work over Wi-Fi — it is expected for the demo.</div>
+  </div>
+
+  <div class="card">
+    <h2>3 &nbsp;Make it an app (optional)</h2>
+    <div class="hint" style="margin:0 0 6px">In the phone browser menu choose
+    <b>Add to Home screen</b>. A "Campus Gate" icon appears and opens full-screen like an app.</div>
+  </div>
+
+  <div class="card">
+    <h2>Login reminders</h2>
+    <div class="hint" style="margin:0">Phone (gate guard): <b>guard1 / guard123</b><br>
+    Laptop (warden): <b>warden_bharadwaja / warden123</b> — or any hostel's warden.<br>
+    Face Scan station for the Live Entry demo: <b>&lt;server address&gt;/face</b></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+(async () => {
+  let url;
+  try {
+    const info = await (await fetch('/api/server-info')).json();
+    url = 'https://' + info.lan_ip + ':' + info.https_port;
+    if (info.lan_ip === '127.0.0.1') {
+      document.getElementById('netcheck').innerHTML =
+        '⚠️ No Wi-Fi/LAN detected on the laptop — connect it to Wi-Fi and reload this page.';
+    }
+  } catch (e) {
+    url = location.origin;
+  }
+  document.getElementById('url').textContent = url;
+  if (window.QRCode) {
+    new QRCode(document.getElementById('qr'), { text: url, width: 220, height: 220,
+      correctLevel: QRCode.CorrectLevel.M });
+  } else {
+    document.getElementById('qr').textContent = 'QR library offline — type the address instead.';
+  }
+})();
+</script>
+</body>
+</html>

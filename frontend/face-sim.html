@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Face Scan Station — Campus Gate</title>
+<link rel="stylesheet" href="/static/style.css?v=8">
+</head>
+<body>
+<div class="screen active" style="max-width:520px">
+  <div class="card" style="text-align:center;padding:28px 20px">
+    <div style="font-size:42px">🧑‍💻</div>
+    <h1>Face Scan Station</h1>
+    <p class="subtitle">Open this page anywhere with: <b style="color:#7dd3fc">&lt;server address&gt;/face</b><br>
+    Stands in for the college's face-recognition system — enter a roll number
+    ("a face scan") and that student instantly appears in the gate app's
+    <b>Live Entry</b> list. In production, Amrita's face system calls the same
+    <code style="color:#7dd3fc">/api/face-scan</code> API.</p>
+  </div>
+
+  <div class="card">
+    <h2>Simulate a face scan</h2>
+    <input type="text" id="roll" placeholder="Roll number, e.g. CB.SC.U4CIV24101"
+           style="text-transform:uppercase"/>
+    <button class="btn-primary" onclick="scan(document.getElementById('roll').value)">📸 Face Scan</button>
+    <div class="hint" style="margin-top:6px">Quick picks:</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn-secondary" style="width:auto;padding:10px 14px;font-size:13px" onclick="scan('CB.SC.U4CIV24101')">Hohin</button>
+      <button class="btn-secondary" style="width:auto;padding:10px 14px;font-size:13px" onclick="scan('CB.SC.U4AIE24102')">Arjun</button>
+      <button class="btn-secondary" style="width:auto;padding:10px 14px;font-size:13px" onclick="scan('CB.SC.U4CSE24103')">Rahul</button>
+      <button class="btn-secondary" style="width:auto;padding:10px 14px;font-size:13px" onclick="scan('CB.SC.U4ECE24104')">Karthik</button>
+    </div>
+    <div id="msg"></div>
+  </div>
+
+  <div class="card">
+    <h2>Recent scans (last 10 min)</h2>
+    <div id="recent"></div>
+  </div>
+</div>
+
+<script>
+function showMsg(text, ok) {
+  document.getElementById('msg').innerHTML =
+    '<div class="alert alert-' + (ok ? 'success' : 'error') + '">' + text + '</div>';
+  setTimeout(() => { document.getElementById('msg').innerHTML = ''; }, 3500);
+}
+
+async function scan(roll) {
+  roll = (roll || '').trim();
+  if (!roll) return showMsg('Enter a roll number', false);
+  try {
+    const res = await fetch('/api/face-scan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roll })
+    });
+    const data = await res.json();
+    if (!res.ok) return showMsg(data.detail || 'Scan failed', false);
+    showMsg('✅ Face recognised: ' + data.name + ' (' + data.roll_number + ')', true);
+    document.getElementById('roll').value = '';
+    loadRecent();
+  } catch (e) {
+    showMsg('Server not reachable', false);
+  }
+}
+
+function ago(t) {
+  const s = Math.max(0, (Date.now() - new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(t) ? t : t + 'Z')) / 1000);
+  return s < 60 ? Math.round(s) + 's ago' : Math.round(s / 60) + ' min ago';
+}
+
+async function loadRecent() {
+  try {
+    const res = await fetch('/api/arrivals?minutes=10');
+    const items = (await res.json()).items;
+    document.getElementById('recent').innerHTML = items.length
+      ? items.map(a => '<div class="log-item"><div class="log-name" style="margin-top:0">'
+          + a.name + ' — ' + a.roll_number + '</div><div class="log-time">🏠 '
+          + (a.hostel || '—') + ' · ' + ago(a.scanned_at) + '</div></div>').join('')
+      : '<div class="hint">No scans yet.</div>';
+  } catch (e) {}
+}
+
+loadRecent();
+setInterval(loadRecent, 3000);
+</script>
+</body>
+</html>

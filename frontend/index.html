@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta name="theme-color" content="#0ea5e9">
+<link rel="manifest" href="/static/manifest.json">
+<link rel="apple-touch-icon" href="/static/icon-192.png">
+<link rel="icon" type="image/png" href="/static/icon-192.png">
+<title>Campus Gate</title>
+<link rel="stylesheet" href="/static/style.css?v=6">
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="screen-login" class="screen active">
+  <div style="padding-top:60px">
+    <div class="card" style="text-align:center;padding:36px 20px">
+      <div class="login-logo">🏫</div>
+      <h1>Campus Gate</h1>
+      <p class="subtitle">Vehicle Entry &amp; Exit Management</p>
+    </div>
+    <div class="card">
+      <h2>Guard Login</h2>
+      <input type="text" id="login-user" placeholder="Username" autocomplete="username" />
+      <input type="password" id="login-pass" placeholder="Password" autocomplete="current-password" />
+      <div id="login-msg"></div>
+      <button class="btn-primary" onclick="doLogin()">Login →</button>
+      <div class="hint" style="text-align:center;margin-top:8px;margin-bottom:0">Demo: guard1 / guard123</div>
+      <a href="/static/connect.html" class="btn-link" style="display:block;text-align:center;text-decoration:none;margin-top:6px">📱 Use on phone — connect &amp; QR</a>
+      <a href="/face" class="btn-link" style="display:block;text-align:center;text-decoration:none;margin-top:0">🧑‍💻 Face Scan station (feeds Live Entry)</a>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN SCREEN -->
+<div id="screen-main" class="screen">
+  <div class="header">
+    <div>
+      <div style="font-weight:700;color:#38bdf8">Campus Gate</div>
+      <div style="font-size:12px;color:#94a3b8" id="guard-name-display"></div>
+    </div>
+    <button class="btn-outline" style="width:auto;padding:8px 14px;font-size:13px" onclick="doLogout()">Logout</button>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat-box">
+      <div class="stat-num" id="stat-today">0</div>
+      <div class="stat-label">Today</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num" id="stat-inside" style="color:#22c55e">0</div>
+      <div class="stat-label">Inside</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num" id="stat-exited" style="color:#94a3b8">0</div>
+      <div class="stat-label">Exited</div>
+    </div>
+  </div>
+
+  <!-- Four categories -->
+  <div class="section-title">Entry gate · record a vehicle coming in</div>
+  <div class="cat-grid">
+    <button class="cat-card" onclick="startStudentFlow()">
+      <div class="cat-icon">🎓</div>
+      <div class="cat-label">Student</div>
+      <div class="cat-sub">plate + ID → enter</div>
+    </button>
+    <button class="cat-card cat-disabled" onclick="comingSoon('Faculty')">
+      <div class="cat-icon">👨‍🏫</div>
+      <div class="cat-label">Faculty</div>
+      <div class="cat-soon">soon</div>
+    </button>
+    <button class="cat-card cat-disabled" onclick="comingSoon('Visitor')">
+      <div class="cat-icon">🧑‍💼</div>
+      <div class="cat-label">Visitor</div>
+      <div class="cat-soon">soon</div>
+    </button>
+    <button class="cat-card cat-card-exit" onclick="openExit()">
+      <div class="cat-icon">🚗💨</div>
+      <div class="cat-label">Vehicle Exit</div>
+      <div class="cat-sub">plate only → exit</div>
+    </button>
+  </div>
+
+  <button class="cat-card-log" onclick="openLogs()">
+    <span class="cat-icon">📋</span>
+    <span class="cat-label">Entry / Exit Log</span>
+  </button>
+</div>
+
+<!-- STUDENT: who came with the student? -->
+<div id="screen-companion" class="screen">
+  <div class="header">
+    <button class="btn-outline" style="width:auto;padding:8px 14px;font-size:13px" onclick="showScreen('screen-main');loadStats()">← Back</button>
+    <div style="font-weight:700">Student Entry</div>
+    <div></div>
+  </div>
+
+  <div class="section-title">Who has come with the student?</div>
+  <div class="split-grid">
+    <button class="split-card" onclick="chooseCompanion('Parent')">
+      <div class="cat-icon">👪</div>
+      <div class="cat-label">Parent</div>
+      <div class="split-status">logged as "Parent"</div>
+    </button>
+    <button class="split-card" onclick="showRelativeInput()">
+      <div class="cat-icon">🧑‍🤝‍🧑</div>
+      <div class="cat-label">Relative / Other</div>
+      <div class="split-status">enter their name</div>
+    </button>
+  </div>
+
+  <div id="relative-box" class="card" style="display:none;margin-top:14px">
+    <h2>Relative / Other — name</h2>
+    <input type="text" id="relative-name" placeholder="e.g. Ramesh (Uncle)" maxlength="60"/>
+    <div class="hint">This name will appear in the log in place of "Parent".</div>
+    <button class="btn-primary" onclick="chooseRelative()">Continue →</button>
+    <div id="companion-msg"></div>
+  </div>
+</div>
+
+<!-- STUDENT: choose Vehicle / ID Card -->
+<div id="screen-student" class="screen">
+  <div class="header">
+    <button class="btn-outline" style="width:auto;padding:8px 14px;font-size:13px" onclick="showScreen('screen-main');loadStats()">← Back</button>
+    <div style="font-weight:700">Student</div>
+    <div></div>
+  </div>
+
+  <!-- progress -->
+  <div class="steps">
+    <div class="step" id="step-vehicle">1. Vehicle</div>
+    <div class="step-arrow">→</div>
+    <div class="step" id="step-id">2. ID Card</div>
+  </div>
+
+  <div class="plate-chip">👤 With: <strong id="companion-display">—</strong></div>
+
+  <div class="split-grid">
+    <button class="split-card" id="split-vehicle" onclick="openVehicle()">
+      <div class="cat-icon">🚗</div>
+      <div class="cat-label">Vehicle</div>
+      <div class="split-status" id="vehicle-status">scan plate</div>
+    </button>
+    <button class="split-card split-locked" id="split-id" onclick="openIdCard()">
+      <div class="cat-icon">🪪</div>
+      <div class="cat-label">ID Card</div>
+      <div class="split-status" id="id-status">locked</div>
+    </button>
+  </div>
+</div>
+
+<!-- STUDENT: Vehicle plate capture -->
+<div id="screen-vehicle" class="screen">
+  <div class="header">
+    <button class="btn-outline" style="width:auto;padding:8px 14px;font-size:13px" onclick="showScreen('screen-student');stopPlateCam()">← Back</button>
+    <div style="font-weight:700">Capture Number Plate</div>
+    <div></div>
+  </div>
+
+  <div class="card">
+    <h2>Point camera at the number plate</h2>
+    <div id="plate-video-container">
+      <video id="plate-video" autoplay playsinline muted></video>
+      <div class="plate-frame"></div>
+    </div>
+    <canvas id="plate-canvas" style="display:none"></canvas>
+    <button class="btn-primary" id="plate-start-btn" onclick="startPlateCam()">📷 Start Camera</button>
+    <button class="btn-success" id="plate-capture-btn" style="display:none" onclick="capturePlate()">📸 Capture now (manual)</button>
+    <div id="plate-msg"></div>
+    <button class="btn-link" onclick="enterPlateManually()">✏️ Enter plate number manually</button>
+  </div>
+
+  <!-- Recognised result -->
+  <div id="plate-result" class="card" style="display:none">
+    <h2>Detected Number Plate</h2>
+    <input type="text" id="plate-number-input" placeholder="AA 00 AA 0000"
+           style="text-transform:uppercase;font-size:24px;font-weight:700;text-align:center;letter-spacing:2px"/>
+    <div class="hint">Format: AA 00 AA 0000 (e.g. TN 38 H 1234). Correct it if the reading is wrong.</div>
+
+    <label class="field-label" for="plate-occupants">👥 People in vehicle</label>
+    <input type="number" id="plate-occupants" min="1" max="30" value="1"
+           style="font-size:20px;font-weight:700;text-align:center"/>
+
+    <button class="btn-success" onclick="savePlate()">💾 Save & Continue to ID</button>
+    <button class="btn-secondary" onclick="retakePlate()">🔄 Retake</button>
+  </div>
+</div>
+
+<!-- STUDENT: ID barcode scan -->
+<div id="screen-id" class="screen">
+  <div class="header">
+    <button class="btn-outline" style="width:auto;padding:8px 14px;font-size:13px" onclick="showScreen('screen-student');stopScan()">← Back</button>
+    <div style="font-weight:700">Scan ID Card</div>
+    <div></div>
+  </div>
+
+  <div class="plate-chip">🚗 Vehicle: <strong id="captured-plate-display">—</strong> &nbsp;·&nbsp; 👤 <strong id="captured-companion-display">—</strong></div>
+
+  <div class="nav-tabs">
+    <button class="nav-tab active" id="tab-manual" onclick="switchIdTab('manual')">⌨️ Roll No</button>
+    <button class="nav-tab" id="tab-live" onclick="switchIdTab('live')">🧑 Live Entry</button>
+    <button class="nav-tab" id="tab-scan" onclick="switchIdTab('scan')">📷 Scan</button>
+  </div>
+
+  <div id="tab-content-manual" class="card">
+    <h2>Enter Roll Number</h2>
+    <input type="text" id="manual-barcode" placeholder="e.g. CB.SC.U4CIV24101" oninput="previewRoll()"
+           style="text-transform:uppercase;font-size:18px;font-weight:600;letter-spacing:1px"/>
+    <div id="roll-preview" class="roll-preview"></div>
+    <button class="btn-primary" onclick="submitScan(document.getElementById('manual-barcode').value)">✅ Submit</button>
+    <div id="id-msg-manual"></div>
+  </div>
+
+  <div id="tab-content-live" class="card" style="display:none">
+    <h2>Live Entry — recent face scans</h2>
+    <div class="hint">Students who just face-scanned at the gate. Tap the student who belongs to this vehicle.</div>
+    <div id="arrivals-list"></div>
+    <div id="id-msg-live"></div>
+  </div>
+
+  <div id="tab-content-scan" class="card" style="display:none">
+    <h2>Scan ID / Barcode</h2>
+    <div id="video-container">
+      <video id="id-video" autoplay playsinline muted></video>
+      <div class="scan-line"></div>
+    </div>
+    <button class="btn-primary" onclick="startScan()">📷 Start Camera</button>
+    <button class="btn-secondary" onclick="stopScan()">Stop Camera</button>
+    <div id="id-msg"></div>
+  </div>
+</div>
+
+<!-- EXIT GATE: plate only (second guard) -->
+<div id="screen-exit" class="screen">
+  <div class="header">
+    <button class="btn-outline" style="width:auto;padding:8px 14px;font-size:13px" onclick="showScreen('screen-main');loadStats()">← Back</button>
+    <div style="font-weight:700">Vehicle Exit</div>
+    <div></div>
+  </div>
+
+  <div class="hint" style="margin:0 4px 14px">Enter or scan the plate of the vehicle leaving campus. It is matched to its entry automatically.</div>
+
+  <div class="nav-tabs">
+    <button class="nav-tab active" id="extab-manual" onclick="switchExitTab('manual')">⌨️ Enter Plate</button>
+    <button class="nav-tab" id="extab-scan" onclick="switchExitTab('scan')">📷 Scan Plate</button>
+  </div>
+
+  <div id="exit-manual" class="card">
+    <h2>Exiting Vehicle Number</h2>
+    <input type="text" id="exit-plate-input" placeholder="AA 00 AA 0000"
+           style="text-transform:uppercase;font-size:22px;font-weight:700;text-align:center;letter-spacing:2px"/>
+    <div id="exit-msg"></div>
+    <button class="btn-danger" onclick="recordExit(document.getElementById('exit-plate-input').value)">🚗💨 Record Exit</button>
+  </div>
+
+  <div id="exit-scan" class="card" style="display:none">
+    <h2>Scan Exiting Plate</h2>
+    <div id="exit-video-container">
+      <video id="exit-video" autoplay playsinline muted></video>
+      <div class="plate-frame"></div>
+    </div>
+    <canvas id="exit-canvas" style="display:none"></canvas>
+    <button class="btn-primary" id="exit-start-btn" onclick="startExitCam()">📷 Start Camera</button>
+    <button class="btn-success" id="exit-capture-btn" style="display:none" onclick="captureExitPlate()">📸 Capture now (manual)</button>
+    <div id="exit-scan-msg"></div>
+  </div>
+</div>
+
+<!-- RESULT screen after scan -->
+<div id="screen-result" class="screen">
+  <div class="result-card" id="result-card">
+    <div class="result-icon" id="result-icon">✅</div>
+    <div class="result-action" id="result-action">ENTRY</div>
+    <div class="result-name" id="result-name"></div>
+    <div class="result-row" id="row-roll"><span>Roll No</span><strong id="result-roll"></strong></div>
+    <div class="result-row" id="row-phone"><span>Phone</span><strong id="result-phone"></strong></div>
+    <div class="result-row" id="row-place"><span>Place</span><strong id="result-place"></strong></div>
+    <div class="result-row" id="row-hostel"><span>Hostel</span><strong id="result-hostel"></strong></div>
+    <div class="result-row" id="row-occupants"><span>People in vehicle</span><strong id="result-occupants"></strong></div>
+    <div class="result-row" id="row-companion"><span>Came with</span><strong id="result-companion"></strong></div>
+    <div class="result-row"><span>Vehicle</span><strong id="result-vehicle"></strong></div>
+    <div class="result-row"><span>Time</span><strong id="result-time"></strong></div>
+    <button class="btn-primary" onclick="showScreen('screen-main');loadStats()">🏠 Done</button>
+  </div>
+</div>
+
+<!-- LOGS SCREEN -->
+<div id="screen-logs" class="screen">
+  <div class="header">
+    <button class="btn-outline" style="width:auto;padding:8px 14px;font-size:13px" onclick="showScreen('screen-main')">← Back</button>
+    <div style="font-weight:700">Entry / Exit Log</div>
+    <div></div>
+  </div>
+
+  <div class="card">
+    <input type="text" id="log-search" placeholder="Search name, roll no, vehicle..." oninput="loadLogs()"/>
+    <div style="display:flex;gap:8px">
+      <button class="nav-tab active" id="filter-all" onclick="setFilter('',this)">All</button>
+      <button class="nav-tab" id="filter-inside" onclick="setFilter('INSIDE',this)">Inside</button>
+      <button class="nav-tab" id="filter-exited" onclick="setFilter('EXITED',this)">Exited</button>
+    </div>
+  </div>
+
+  <div id="logs-list"></div>
+</div>
+
+<!-- WARDEN SCREEN -->
+<div id="screen-warden" class="screen">
+  <div class="header">
+    <div>
+      <div style="font-weight:700;color:#38bdf8">🏠 Hostel Warden</div>
+      <div style="font-size:12px;color:#94a3b8" id="warden-hostel-display"></div>
+    </div>
+    <button class="btn-outline" style="width:auto;padding:8px 14px;font-size:13px" onclick="doLogout()">Logout</button>
+  </div>
+
+  <div class="nav-tabs">
+    <button class="nav-tab active" id="wtab-pending" onclick="switchWardenTab('PENDING')">⏳ Pending <span id="wpending-count" class="wcount">0</span></button>
+    <button class="nav-tab" id="wtab-approved" onclick="switchWardenTab('APPROVED')">✅ Approved</button>
+  </div>
+
+  <div class="hint" id="warden-hint" style="margin:0 4px 12px">Tap ✔ Approve when the student reaches the hostel. This unlocks their car's exit at the gate.</div>
+
+  <div id="warden-list"></div>
+</div>
+
+<script src="/static/dataset.js?v=10"></script>
+<script src="/static/app.js?v=10"></script>
+</body>
+</html>
