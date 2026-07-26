@@ -150,9 +150,34 @@ def try_pinggy():
     return None
 
 
+def clear_tunnel_file():
+    """Remove any URL left behind by a previous (crashed) run."""
+    try:
+        if os.path.exists(TUNNEL_TXT):
+            os.remove(TUNNEL_TXT)
+    except OSError:
+        pass
+
+
+def start_heartbeat(url):
+    """Re-touch tunnel.txt every 20s. The server only advertises the public
+    URL while this heartbeat is fresh, so a dead tunnel is never handed to
+    the phone (that used to leave a stale QR pointing nowhere)."""
+    def beat():
+        while True:
+            try:
+                with open(TUNNEL_TXT, "w") as f:
+                    f.write(url)
+            except OSError:
+                pass
+            time.sleep(20)
+    threading.Thread(target=beat, daemon=True).start()
+
+
 def banner(url, transport):
     with open(TUNNEL_TXT, "w") as f:
         f.write(url)
+    start_heartbeat(url)
     print("")
     print("=" * 64)
     print("  PUBLIC URL - works from ANY network / mobile data:")
@@ -172,6 +197,7 @@ def banner(url, transport):
 
 
 def main():
+    clear_tunnel_file()   # never advertise a URL from a previous run
     print("Starting Campus Gate server (local)...")
     uv = subprocess.Popen(
         [sys.executable, "-m", "uvicorn", "main:app", "--app-dir", "backend",

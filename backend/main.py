@@ -57,12 +57,18 @@ def server_info():
         ip = "127.0.0.1"
     finally:
         s.close()
-    # Internet-demo tunnel (started by internet_demo.py) writes its public
-    # URL here; when present the phone should use it — works from any network.
+    # Internet-demo tunnel (started by internet_demo.py) writes its public URL
+    # here and re-touches the file every ~20s as a heartbeat. We only trust it
+    # if that heartbeat is recent — otherwise the launcher died and the URL is
+    # dead, so the phone should fall back to the LAN address.
+    import os
+    import time
     public_url = None
+    tunnel_file = "E:/campus-gate/frontend/tunnel.txt"
     try:
-        with open("E:/campus-gate/frontend/tunnel.txt") as f:
-            public_url = f.read().strip() or None
+        if time.time() - os.path.getmtime(tunnel_file) < 90:
+            with open(tunnel_file) as f:
+                public_url = f.read().strip() or None
     except OSError:
         pass
     return {"lan_ip": ip, "https_port": 8443, "public_url": public_url}
