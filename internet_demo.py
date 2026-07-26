@@ -150,6 +150,47 @@ def try_pinggy():
     return None
 
 
+def port_in_use(port=8000):
+    """True if something is already listening on the local port."""
+    import socket
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.settimeout(1.0)
+        return s.connect_ex(("127.0.0.1", port)) == 0
+
+
+def is_campus_gate(port=8000):
+    """True if the thing on that port is our own server."""
+    try:
+        with urllib.request.urlopen(
+                f"http://127.0.0.1:{port}/api/server-info", timeout=3) as r:
+            return r.status == 200
+    except Exception:
+        return False
+
+
+def start_server():
+    """Start uvicorn, or reuse an already-running Campus Gate on port 8000.
+
+    Without this, a leftover server from a previous run silently keeps the
+    port, uvicorn dies with WinError 10048, and the tunnel ends up pointing
+    at that stale instance (which also fights over tunnel.txt).
+    """
+    if port_in_use(8000):
+        if is_campus_gate(8000):
+            print("A Campus Gate server is ALREADY running on port 8000 —")
+            print("reusing it. (Close other launcher windows if you want a")
+            print("clean start; this window will not stop that server.)")
+            return None
+        print("ERROR: port 8000 is used by another program (not Campus Gate).")
+        print("Close it and run this launcher again.")
+        return False
+    print("Starting Campus Gate server (local)...")
+    return subprocess.Popen(
+        [sys.executable, "-m", "uvicorn", "main:app", "--app-dir", "backend",
+         "--host", "127.0.0.1", "--port", "8000", "--log-level", "warning"],
+        cwd=ROOT)
+
+
 def clear_tunnel_file():
     """Remove any URL left behind by a previous (crashed) run."""
     try:
@@ -197,12 +238,14 @@ def banner(url, transport):
 
 
 def main():
-    clear_tunnel_file()   # never advertise a URL from a previous run
-    print("Starting Campus Gate server (local)...")
-    uv = subprocess.Popen(
-        [sys.executable, "-m", "uvicorn", "main:app", "--app-dir", "backend",
-         "--host", "127.0.0.1", "--port", "8000", "--log-level", "warning"],
-        cwd=ROOT)
+    uv = start_server()
+    if uv is False:          # port taken by something that isn't ours
+        try:
+            input("Press Enter to close...")
+        except EOFError:
+            pass
+        return
+    clear_tunnel_file()      # never advertise a URL from a previous run
 
     tun = try_cloudflared() or try_pinggy()
     try:
@@ -237,10 +280,11 @@ def main():
             pass
         if tun:
             tun[0].stop()
-        try:
-            uv.terminate()
-        except Exception:
-            pass
+        if uv is not None:        # only stop a server WE started
+            try:
+                uv.terminate()
+            except Exception:
+                pass
         print("Stopped.")
 
 
